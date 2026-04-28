@@ -1,4 +1,5 @@
 from fastapi import FastAPI
+from fastapi import Request
 
 from app.schemas import (
     DatasetBuildRequest,
@@ -8,6 +9,7 @@ from app.schemas import (
 )
 from app.services.dataset_builder import DatasetBuilderService
 from app.services.diagram_generator import DiagramGeneratorService
+from app.db import mongo
 
 app = FastAPI(title="Workflow AI Service", version="0.1.0")
 
@@ -15,9 +17,30 @@ diagram_generator = DiagramGeneratorService()
 dataset_builder = DatasetBuilderService()
 
 
+@app.on_event("startup")
+async def startup_event():
+    await mongo.connect(app)
+
+
+@app.on_event("shutdown")
+def shutdown_event():
+    mongo.close()
+
+
 @app.get("/health")
-def health() -> dict:
-    return {"status": "ok", "service": "workflow-ai-service"}
+async def health(request: Request) -> dict:
+    status = {"service": "workflow-ai-service", "status": "ok"}
+    # include a quick DB ping if available
+    try:
+        client = getattr(request.app.state, "mongo_client", None)
+        if client is not None:
+            await client.admin.command("ping")
+            status["mongo"] = "connected"
+        else:
+            status["mongo"] = "not-configured"
+    except Exception as e:
+        status["mongo"] = f"error: {e}"
+    return status
 
 
 @app.post("/v1/diagram/generate", response_model=DiagramGenerationResponse)
