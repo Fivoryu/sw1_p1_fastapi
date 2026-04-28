@@ -33,9 +33,12 @@ async def health(request: Request) -> dict:
     # include a quick DB ping if available
     try:
         client = getattr(request.app.state, "mongo_client", None)
+        mongo_error = getattr(request.app.state, "mongo_error", None)
         if client is not None:
             await client.admin.command("ping")
             status["mongo"] = "connected"
+        elif mongo_error:
+            status["mongo"] = f"error: {mongo_error}"
         else:
             status["mongo"] = "not-configured"
     except Exception as e:
