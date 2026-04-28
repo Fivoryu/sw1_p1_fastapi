@@ -4,7 +4,6 @@ __pycache__/
 venv/
 .git/
 .github/
-data/
 *.pyc
 *.pyo
 *.log
