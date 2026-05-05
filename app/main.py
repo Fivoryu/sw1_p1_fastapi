@@ -50,7 +50,10 @@ async def health(request: Request) -> dict:
 def generate_diagram(payload: DiagramGenerationRequest) -> DiagramGenerationResponse:
     normalized_prompt = diagram_generator.normalize_prompt(payload.prompt)
     steps = diagram_generator.detect_steps(normalized_prompt)
-    structure = diagram_generator.generate_intermediate_structure(normalized_prompt)
+    if payload.output_format == "uml_activity":
+        structure = diagram_generator.generate_uml_activity_structure(normalized_prompt, payload.business_context)
+    else:
+        structure = diagram_generator.generate_intermediate_structure(normalized_prompt)
 
     return DiagramGenerationResponse(
         success=True,
